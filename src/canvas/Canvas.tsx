@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Grid } from "../types";
-import { useResizeObserver, useScale } from "../using-utils";
+import {
+  UseTranslatePositionRtn,
+  useResizeObserver,
+  useScale,
+  useTranslatePosition,
+} from "../using-utils";
 
 // https://www.jgibson.id.au/blog/responsive-canvas/
 // https://jsfiddle.net/u5ogmh9a/
@@ -20,13 +25,14 @@ export default function Canvas() {
   });
 
   const scale = useScale(canvasRef);
+  const translate = useTranslatePosition(canvasRef);
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      draw(canvas, grid, scale);
+      draw(canvas, grid, scale, translate);
     }
-  }, [grid, scale]);
+  }, [grid, scale, translate]);
 
   useEffect(() => {
     redraw();
@@ -36,7 +42,12 @@ export default function Canvas() {
   return <canvas ref={canvasRef} className="bg-white w-full h-full"></canvas>;
 }
 
-function draw(canvas: HTMLCanvasElement, grid: Grid, scale: number) {
+function draw(
+  canvas: HTMLCanvasElement,
+  grid: Grid,
+  scale: number,
+  translate: UseTranslatePositionRtn,
+) {
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio * scale;
   const cssWidth = Math.round(canvas.clientWidth / scale);
@@ -46,6 +57,7 @@ function draw(canvas: HTMLCanvasElement, grid: Grid, scale: number) {
   canvas.width = pxWidth;
   canvas.height = pxHeight;
   if (ctx) {
+    ctx.translate(translate.translateX, translate.translateY);
     ctx.scale(dpr, dpr);
     drawGrid(cssWidth, grid, ctx, cssHeight);
     drawRectangles(grid, ctx);
