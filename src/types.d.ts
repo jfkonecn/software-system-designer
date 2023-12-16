@@ -9,3 +9,5 @@ export type Grid = {
   rectangles: Rectangle[];
   gridSquareSize: number;
 };
+
+export type DrawMode = "addRectangle" | "erase";
