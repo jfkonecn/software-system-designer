@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { MouseEventHandler, useCallback, useEffect, useRef } from "react";
 import { DrawMode, Grid } from "../types";
 import {
   UseTranslatePositionRtn,
@@ -16,7 +16,7 @@ type CanvasProps = {
   drawMode: DrawMode;
 };
 
-export default function Canvas({ grid }: CanvasProps) {
+export default function Canvas({ grid, onGridChange, drawMode }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const scale = useScale(canvasRef);
@@ -33,8 +33,57 @@ export default function Canvas({ grid }: CanvasProps) {
     redraw();
   }, [redraw]);
 
+  const onCanvasClick = useCallback<MouseEventHandler<HTMLCanvasElement>>(
+    (e) => {
+      if (drawMode === "addRectangle") {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const { x, y } = effectiveXY(e, canvas, translate, scale);
+          grid.rectangles.push({
+            x: x,
+            y: y,
+            width: 100,
+            height: 100,
+          });
+          const newGrid = {
+            ...grid,
+            rectangles: [
+              ...grid.rectangles,
+              {
+                x: x,
+                y: y,
+                width: 100,
+                height: 100,
+              },
+            ],
+          };
+          onGridChange(newGrid);
+        }
+      }
+    },
+    [drawMode, onGridChange, grid, translate, scale],
+  );
+
   useResizeObserver(canvasRef, redraw);
-  return <canvas ref={canvasRef} className="bg-white w-full h-full"></canvas>;
+  return (
+    <canvas
+      ref={canvasRef}
+      onClick={onCanvasClick}
+      className="bg-white w-full h-full"
+    ></canvas>
+  );
+}
+
+function effectiveXY(
+  e: React.MouseEvent<HTMLCanvasElement, MouseEvent>,
+  canvas: HTMLCanvasElement,
+  translate: UseTranslatePositionRtn,
+  scale: number,
+) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left - translate.translateX) / scale;
+  const y = (e.clientY - rect.top - translate.translateY) / scale;
+  return { x, y };
 }
 
 function draw(
