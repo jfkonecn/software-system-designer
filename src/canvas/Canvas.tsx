@@ -30,11 +30,13 @@ export default function Canvas() {
 
 function drawGrid(canvas: HTMLCanvasElement, grid: Grid) {
   const ctx = canvas.getContext("2d");
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
+  const { cssWidth, cssHeight, pxWidth, pxHeight, dpr } = canvasDims(canvas);
+  canvas.width = pxWidth;
+  canvas.height = pxHeight;
   if (ctx) {
+    ctx.scale(dpr, dpr);
     let iteration = 0;
-    for (let i = 0; i < canvas.width; i += grid.gridSquareSize) {
+    for (let i = 0; i < cssWidth; i += grid.gridSquareSize) {
       if (iteration % 5 === 0) {
         ctx.strokeStyle = "black";
       } else {
@@ -48,7 +50,7 @@ function drawGrid(canvas: HTMLCanvasElement, grid: Grid) {
     }
 
     iteration = 0;
-    for (let i = 0; i < canvas.height; i += grid.gridSquareSize) {
+    for (let i = 0; i < cssHeight; i += grid.gridSquareSize) {
       if (iteration % 5 === 0) {
         ctx.strokeStyle = "black";
       } else {
@@ -61,4 +63,13 @@ function drawGrid(canvas: HTMLCanvasElement, grid: Grid) {
       ctx.stroke();
     }
   }
+}
+
+function canvasDims(canvas: HTMLCanvasElement) {
+  const dpr = window.devicePixelRatio;
+  const cssWidth = canvas.clientWidth;
+  const cssHeight = canvas.clientHeight;
+  const pxWidth = Math.round(dpr * cssWidth);
+  const pxHeight = Math.round(dpr * cssHeight);
+  return { dpr, cssWidth, cssHeight, pxWidth, pxHeight };
 }

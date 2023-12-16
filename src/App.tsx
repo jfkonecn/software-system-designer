@@ -3,9 +3,11 @@ import Toolbar from "./toolbar/Toolbar";
 
 function App() {
   return (
-    <div className="h-screen w-screen grid grid-cols-1 md:grid-cols-[auto,1fr]">
-      <Toolbar />
-      <Canvas />
+    <div className="h-screen w-screen">
+      <div className="h-full w-full grid grid-cols-1 md:grid-cols-[auto,1fr]">
+        <Toolbar />
+        <Canvas />
+      </div>
     </div>
   );
 }
