@@ -20,8 +20,8 @@ export function useScale(
   useEffect(() => {
     const handleKeyDown = (e: WheelEvent) => {
       const scaleMultiplier = 0.8;
-      const maxScale = 3;
-      const minScale = 0.8;
+      const maxScale = 5;
+      const minScale = 0.5;
       if (e.ctrlKey) {
         if (e.deltaY > 0) {
           setScale((prev) => {

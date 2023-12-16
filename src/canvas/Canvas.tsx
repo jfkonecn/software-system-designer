@@ -59,7 +59,7 @@ function draw(
   if (ctx) {
     ctx.translate(translate.translateX, translate.translateY);
     ctx.scale(dpr, dpr);
-    drawGrid(cssWidth, grid, ctx, cssHeight);
+    drawGrid(grid, ctx);
     drawRectangles(grid, ctx);
   }
 }
@@ -71,14 +71,10 @@ function drawRectangles(grid: Grid, ctx: CanvasRenderingContext2D) {
   }
 }
 
-function drawGrid(
-  cssWidth: number,
-  grid: Grid,
-  ctx: CanvasRenderingContext2D,
-  cssHeight: number,
-) {
+function drawGrid(grid: Grid, ctx: CanvasRenderingContext2D) {
   let iteration = 0;
-  for (let i = 0; i < cssWidth; i += grid.gridSquareSize) {
+  const maxLength = 2000;
+  for (let i = -maxLength; i <= maxLength; i += grid.gridSquareSize) {
     if (iteration % 5 === 0) {
       ctx.strokeStyle = "black";
     } else {
@@ -86,13 +82,13 @@ function drawGrid(
     }
     ctx.beginPath();
     iteration++;
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i, cssHeight);
+    ctx.moveTo(i, -maxLength);
+    ctx.lineTo(i, maxLength);
     ctx.stroke();
   }
 
   iteration = 0;
-  for (let i = 0; i < cssHeight; i += grid.gridSquareSize) {
+  for (let i = -maxLength; i <= maxLength; i += grid.gridSquareSize) {
     if (iteration % 5 === 0) {
       ctx.strokeStyle = "black";
     } else {
@@ -100,8 +96,8 @@ function drawGrid(
     }
     iteration++;
     ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(cssWidth, i);
+    ctx.moveTo(-maxLength, i);
+    ctx.lineTo(maxLength, i);
     ctx.stroke();
   }
 }
