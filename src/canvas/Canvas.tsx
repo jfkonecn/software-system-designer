@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Grid } from "../types";
+import { useCallback, useEffect, useRef } from "react";
+import { DrawMode, Grid } from "../types";
 import {
   UseTranslatePositionRtn,
   useResizeObserver,
@@ -9,20 +9,15 @@ import {
 
 // https://www.jgibson.id.au/blog/responsive-canvas/
 // https://jsfiddle.net/u5ogmh9a/
-export default function Canvas() {
+
+type CanvasProps = {
+  grid: Grid;
+  onGridChange: (grid: Grid) => void;
+  drawMode: DrawMode;
+};
+
+export default function Canvas({ grid }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [grid, setGrid] = useState<Grid>({
-    rectangles: [
-      {
-        x: 50,
-        y: 500,
-        width: 100,
-        height: 100,
-      },
-    ],
-    gridSquareSize: 25,
-  });
 
   const scale = useScale(canvasRef);
   const translate = useTranslatePosition(canvasRef);
