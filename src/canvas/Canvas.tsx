@@ -270,8 +270,13 @@ function drawRectangles({ grid, ctx, drawMode }: ContextState) {
     } else {
       ctx.strokeStyle = "black";
       ctx.fillStyle = "white";
-      ctx.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
-      ctx.fill();
+      ctx.strokeRect(
+        rectangle.x,
+        rectangle.y,
+        rectangle.width,
+        rectangle.height,
+      );
+      ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
       ctx.stroke();
     }
   }
