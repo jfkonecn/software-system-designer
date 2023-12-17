@@ -10,4 +10,4 @@ export type Grid = {
   gridSquareSize: number;
 };
 
-export type DrawMode = "addRectangle" | "erase";
+export type DrawMode = "select" | "addRectangle" | "erase";

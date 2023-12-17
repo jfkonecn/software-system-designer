@@ -92,3 +92,35 @@ export function useTranslatePosition(
   }, [canvasRef]);
   return { translateX, translateY };
 }
+
+export function useCursor(
+  canvasRef: React.RefObject<HTMLCanvasElement>,
+  scale: number,
+  {
+    translateX,
+    translateY,
+  }: {
+    translateX: number;
+    translateY: number;
+  },
+): { x: number; y: number } {
+  const [cursor, setCursor] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e;
+      const { left, top } = canvasRef.current?.getBoundingClientRect() || {
+        left: 0,
+        top: 0,
+      };
+      const x = (clientX - left - translateX) / scale;
+      const y = (clientY - top - translateY) / scale;
+      setCursor({ x, y });
+    };
+    canvasRef.current?.addEventListener("mousemove", onMouseMove);
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      canvasRef.current?.removeEventListener("mousemove", onMouseMove);
+    };
+  }, [canvasRef, scale, translateX, translateY]);
+  return cursor;
+}

@@ -5,6 +5,9 @@ import { DrawMode, Grid } from "./types";
 
 function App() {
   const appRef = useRef<HTMLDivElement>(null);
+  const [drawMode, setDrawMode] = useState<DrawMode>("select");
+  const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
+
   useEffect(() => {
     const handleKeyDown = (e: WheelEvent) => {
       e.preventDefault();
@@ -27,12 +30,21 @@ function App() {
     gridSquareSize: 25,
   });
 
-  const [drawMode, setDrawMode] = useState<DrawMode>("addRectangle");
   return (
     <div ref={appRef} className="h-screen w-screen fixed left-0 top-0">
       <div className="h-full w-full grid grid-cols-1 md:grid-cols-[auto,1fr]">
-        <Toolbar drawMode={drawMode} onDrawModeChange={setDrawMode} />
-        <Canvas grid={grid} onGridChange={setGrid} drawMode={drawMode} />
+        <Toolbar
+          snapToGrid={snapToGrid}
+          onSnapToGridChange={setSnapToGrid}
+          drawMode={drawMode}
+          onDrawModeChange={setDrawMode}
+        />
+        <Canvas
+          snapToGrid={snapToGrid}
+          grid={grid}
+          onGridChange={setGrid}
+          drawMode={drawMode}
+        />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { MouseEventHandler, useCallback, useEffect, useRef } from "react";
 import { DrawMode, Grid } from "../types";
 import {
   UseTranslatePositionRtn,
+  useCursor,
   useResizeObserver,
   useScale,
   useTranslatePosition,
@@ -14,20 +15,27 @@ type CanvasProps = {
   grid: Grid;
   onGridChange: (grid: Grid) => void;
   drawMode: DrawMode;
+  snapToGrid: boolean;
 };
 
-export default function Canvas({ grid, onGridChange, drawMode }: CanvasProps) {
+export default function Canvas({
+  grid,
+  onGridChange,
+  drawMode,
+  snapToGrid,
+}: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const scale = useScale(canvasRef);
   const translate = useTranslatePosition(canvasRef);
 
+  const cursor = useCursor(canvasRef, scale, translate);
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      draw(canvas, grid, scale, translate);
+      draw(canvas, grid, scale, translate, cursor, snapToGrid);
     }
-  }, [grid, scale, translate]);
+  }, [grid, scale, translate, cursor, snapToGrid]);
 
   useEffect(() => {
     redraw();
@@ -91,6 +99,8 @@ function draw(
   grid: Grid,
   scale: number,
   translate: UseTranslatePositionRtn,
+  cursor: { x: number; y: number },
+  snapToGrid: boolean,
 ) {
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio * scale;
@@ -105,7 +115,27 @@ function draw(
     ctx.scale(dpr, dpr);
     drawGrid(grid, ctx);
     drawRectangles(grid, ctx);
+    drawCursor(ctx, grid, cursor.x, cursor.y, snapToGrid);
   }
+}
+
+function drawCursor(
+  ctx: CanvasRenderingContext2D,
+  grid: Grid,
+  x: number,
+  y: number,
+  snapToGrid: boolean,
+) {
+  ctx.fillStyle = "blue";
+  ctx.font = "30px Arial";
+  const newX = snapToGrid
+    ? Math.round(x / grid.gridSquareSize) * grid.gridSquareSize
+    : x;
+  const newY = snapToGrid
+    ? Math.round(y / grid.gridSquareSize) * grid.gridSquareSize
+    : y;
+  ctx.fillText(`${newX}, ${newY}`, newX, newY);
+  ctx.fillRect(newX, newY, 100, 100);
 }
 
 function drawRectangles(grid: Grid, ctx: CanvasRenderingContext2D) {
