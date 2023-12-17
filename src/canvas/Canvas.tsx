@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { DrawMode, Grid } from "../types";
 import {
@@ -33,6 +34,7 @@ export default function Canvas({
   onDrawModeChange,
   snapToGrid,
 }: CanvasProps) {
+  const [mouseMoved, setMouseMoved] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const scale = useScale(canvasRef);
@@ -53,6 +55,7 @@ export default function Canvas({
   const onMouseDown = useCallback<MouseEventHandler<HTMLCanvasElement>>(
     (e) => {
       e.preventDefault();
+      setMouseMoved(false);
       if (e.button === 0) {
         if (drawMode.typename === "addRectangle") {
           if (drawMode.phase.typename === "idle") {
@@ -129,7 +132,7 @@ export default function Canvas({
         drawMode.phase.typename === "lasso" &&
         e.button === 0
       ) {
-        const selectedUuids: string[] = [];
+        let selectedUuids: string[] = [];
         for (const rectangle of grid.rectangles) {
           const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
           const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
@@ -148,13 +151,19 @@ export default function Canvas({
             selectedUuids.push(rectangle.uuid);
           }
         }
+        selectedUuids = mouseMoved
+          ? selectedUuids
+          : selectedUuids.length > 0
+            ? [selectedUuids[selectedUuids.length - 1]]
+            : [];
         onDrawModeChange({
           typename: "select",
           phase: { typename: "selected", uuids: selectedUuids },
         });
       }
+      setMouseMoved(false);
     },
-    [drawMode, grid, cursor, onDrawModeChange],
+    [drawMode, grid, cursor, onDrawModeChange, mouseMoved],
   );
 
   const onKeyDown = useCallback(
@@ -189,6 +198,7 @@ export default function Canvas({
       ref={canvasRef}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
+      onMouseMove={() => setMouseMoved(true)}
       className="bg-white w-full h-full"
       onContextMenu={(e) => e.preventDefault()}
     ></canvas>
