@@ -15,6 +15,7 @@ type CanvasProps = {
   grid: Grid;
   onGridChange: (grid: Grid) => void;
   drawMode: DrawMode;
+  onDrawModeChange: (drawMode: DrawMode) => void;
   snapToGrid: boolean;
 };
 
@@ -22,6 +23,7 @@ export default function Canvas({
   grid,
   onGridChange,
   drawMode,
+  onDrawModeChange,
   snapToGrid,
 }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,37 +35,53 @@ export default function Canvas({
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      draw({ canvas, grid, scale, translate, cursor });
+      draw({ canvas, grid, scale, translate, cursor, drawMode });
     }
-  }, [grid, scale, translate, cursor]);
+  }, [grid, scale, translate, cursor, drawMode]);
 
   useEffect(() => {
     redraw();
   }, [redraw]);
 
-  const onCanvasClick = useCallback<
-    MouseEventHandler<HTMLCanvasElement>
-  >(() => {
-    if (drawMode.typename === "addRectangle") {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        grid.rectangles.push({
-          x: cursor.x,
-          y: cursor.y,
-          width: 100,
-          height: 100,
+  const onCanvasClick = useCallback<MouseEventHandler<HTMLCanvasElement>>(
+    (e) => {
+      console.log("canvas click");
+      e.preventDefault();
+      if (drawMode.typename === "addRectangle") {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          grid.rectangles.push({
+            x: cursor.x,
+            y: cursor.y,
+            width: 100,
+            height: 100,
+          });
+          onGridChange(grid);
+        }
+      } else if (e.button == 2 && drawMode.typename === "select") {
+        onDrawModeChange({
+          typename: "select",
+          phase: { typename: "idle" },
         });
-        onGridChange(grid);
+      } else if (drawMode.typename === "select") {
+        onDrawModeChange({
+          typename: "select",
+          phase: { typename: "lasso", start: cursor },
+        });
       }
-    }
-  }, [drawMode, onGridChange, grid, cursor]);
+      return false;
+    },
+    [drawMode, onGridChange, grid, cursor, onDrawModeChange],
+  );
 
   useResizeObserver(canvasRef, redraw);
   return (
     <canvas
       ref={canvasRef}
       onClick={onCanvasClick}
+      onMouseDown={onCanvasClick}
       className="bg-white w-full h-full"
+      onContextMenu={(e) => e.preventDefault()}
     ></canvas>
   );
 }
@@ -74,13 +92,21 @@ type CanvasState = {
   scale: number;
   translate: UseTranslatePositionRtn;
   cursor: { x: number; y: number };
+  drawMode: DrawMode;
 };
 
 type ContextState = Omit<CanvasState, "canvas"> & {
   ctx: CanvasRenderingContext2D;
 };
 
-function draw({ canvas, grid, scale, translate, cursor }: CanvasState) {
+function draw({
+  canvas,
+  grid,
+  scale,
+  translate,
+  cursor,
+  drawMode,
+}: CanvasState) {
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio * scale;
   const cssWidth = Math.round(canvas.clientWidth / scale);
@@ -98,6 +124,7 @@ function draw({ canvas, grid, scale, translate, cursor }: CanvasState) {
       scale,
       translate,
       cursor,
+      drawMode,
     };
     drawGrid(contextState);
     drawRectangles(contextState);
@@ -105,7 +132,13 @@ function draw({ canvas, grid, scale, translate, cursor }: CanvasState) {
   }
 }
 
-function drawCursor({ ctx, grid, cursor: { x, y }, scale }: ContextState) {
+function drawCursor({
+  ctx,
+  grid,
+  cursor: { x, y },
+  scale,
+  drawMode,
+}: ContextState) {
   ctx.strokeStyle = "blue";
   const fontSize = 1 / scale + 1;
   ctx.font = `${fontSize}rem Arial`;
@@ -123,6 +156,16 @@ function drawCursor({ ctx, grid, cursor: { x, y }, scale }: ContextState) {
   ctx.moveTo(x, y - crossHairSize);
   ctx.lineTo(x, y + crossHairSize);
   ctx.stroke();
+  if (drawMode.typename === "select" && drawMode.phase.typename === "lasso") {
+    ctx.strokeStyle = "red";
+    ctx.beginPath();
+    ctx.moveTo(drawMode.phase.start.x, drawMode.phase.start.y);
+    ctx.lineTo(x, drawMode.phase.start.y);
+    ctx.lineTo(x, y);
+    ctx.lineTo(drawMode.phase.start.x, y);
+    ctx.lineTo(drawMode.phase.start.x, drawMode.phase.start.y);
+    ctx.stroke();
+  }
 }
 
 function drawRectangles({ grid, ctx }: ContextState) {

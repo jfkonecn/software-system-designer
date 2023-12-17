@@ -5,7 +5,10 @@ import { DrawMode, Grid } from "./types";
 
 function App() {
   const appRef = useRef<HTMLDivElement>(null);
-  const [drawMode, setDrawMode] = useState<DrawMode>({ typename: "select" });
+  const [drawMode, setDrawMode] = useState<DrawMode>({
+    typename: "select",
+    phase: { typename: "idle" },
+  });
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
 
   useEffect(() => {
@@ -46,6 +49,7 @@ function App() {
           grid={gridState.grid}
           onGridChange={(x) => setGridState({ grid: x })}
           drawMode={drawMode}
+          onDrawModeChange={setDrawMode}
         />
       </div>
     </div>

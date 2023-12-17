@@ -20,7 +20,12 @@ export default function Toolbar({
             className={`${
               drawModeTypename === "select" ? "bg-blue-300" : "bg-white"
             }`}
-            onClick={() => onDrawModeChange({ typename: "select" })}
+            onClick={() =>
+              onDrawModeChange({
+                typename: "select",
+                phase: { typename: "idle" },
+              })
+            }
           >
             Select
           </button>
@@ -28,7 +33,12 @@ export default function Toolbar({
             className={`${
               drawModeTypename === "addRectangle" ? "bg-blue-300" : "bg-white"
             }`}
-            onClick={() => onDrawModeChange({ typename: "addRectangle" })}
+            onClick={() =>
+              onDrawModeChange({
+                typename: "addRectangle",
+                phase: { typename: "idle" },
+              })
+            }
           >
             Add Rectangle
           </button>

@@ -10,7 +10,16 @@ export type Grid = {
   gridSquareSize: number;
 };
 
-export type DrawMode =
-  | { typename: "select" }
-  | { typename: "addRectangle" }
-  | { typename: "lasso"; start: { x: number; y: number } };
+export type SelectMode = {
+  typename: "select";
+  phase:
+    | { typename: "idle" }
+    | { typename: "lasso"; start: { x: number; y: number } };
+};
+
+export type AddRectangleMode = {
+  typename: "addRectangle";
+  phase: { typename: "idle" };
+};
+
+export type DrawMode = SelectMode | AddRectangleMode;
