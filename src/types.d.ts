@@ -21,7 +21,9 @@ export type SelectMode = {
 
 export type AddRectangleMode = {
   typename: "addRectangle";
-  phase: { typename: "idle" };
+  phase:
+    | { typename: "idle" }
+    | { typename: "adding"; start: { x: number; y: number } };
 };
 
 export type DrawMode = SelectMode | AddRectangleMode;

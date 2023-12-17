@@ -54,16 +54,31 @@ export default function Canvas({
     (e) => {
       e.preventDefault();
       if (drawMode.typename === "addRectangle") {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          grid.rectangles.push({
-            x: cursor.x,
-            y: cursor.y,
-            width: 100,
-            height: 100,
-            uuid: crypto.randomUUID(),
+        if (drawMode.phase.typename === "idle") {
+          onDrawModeChange({
+            typename: "addRectangle",
+            phase: { typename: "adding", start: cursor },
           });
-          onGridChange(grid);
+        } else if (drawMode.phase.typename === "adding") {
+          const canvas = canvasRef.current;
+          if (canvas) {
+            const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
+            const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
+            const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
+            const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
+            grid.rectangles.push({
+              x: minXSelected,
+              y: minYSelected,
+              width: maxXSelected - minXSelected,
+              height: maxYSelected - minYSelected,
+              uuid: crypto.randomUUID(),
+            });
+            onGridChange(grid);
+            onDrawModeChange({
+              typename: "addRectangle",
+              phase: { typename: "idle" },
+            });
+          }
         }
       } else if (drawMode.typename === "select") {
         if (
@@ -110,6 +125,11 @@ export default function Canvas({
       if (e.key === "Escape" && drawMode.typename === "select") {
         onDrawModeChange({
           typename: "select",
+          phase: { typename: "idle" },
+        });
+      } else if (e.key === "Escape" && drawMode.typename === "addRectangle") {
+        onDrawModeChange({
+          typename: "addRectangle",
           phase: { typename: "idle" },
         });
       } else if (e.key === "Delete" && drawMode.typename === "select") {
@@ -191,6 +211,7 @@ function drawCursor({
   drawMode,
 }: ContextState) {
   ctx.strokeStyle = "blue";
+  ctx.fillStyle = "black";
   const fontSize = 1 / scale + 1;
   ctx.font = `${fontSize}rem Arial`;
   ctx.lineWidth = grid.gridSquareSize / 5;
@@ -216,6 +237,17 @@ function drawCursor({
     ctx.lineTo(drawMode.phase.start.x, y);
     ctx.lineTo(drawMode.phase.start.x, drawMode.phase.start.y);
     ctx.stroke();
+  } else if (
+    drawMode.typename === "addRectangle" &&
+    drawMode.phase.typename === "adding"
+  ) {
+    ctx.strokeStyle = "green";
+    ctx.strokeRect(
+      drawMode.phase.start.x,
+      drawMode.phase.start.y,
+      x - drawMode.phase.start.x,
+      y - drawMode.phase.start.y,
+    );
   }
 }
 
@@ -229,17 +261,25 @@ function drawRectangles({ grid, ctx, drawMode }: ContextState) {
       ctx.strokeStyle = "red";
       ctx.lineWidth = grid.gridSquareSize / 5;
       ctx.setLineDash([grid.gridSquareSize / 5, grid.gridSquareSize / 5]);
+      ctx.strokeRect(
+        rectangle.x,
+        rectangle.y,
+        rectangle.width,
+        rectangle.height,
+      );
     } else {
       ctx.strokeStyle = "black";
-      ctx.lineWidth = grid.gridSquareSize / 10;
-      ctx.setLineDash([]);
+      ctx.fillStyle = "white";
+      ctx.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      ctx.fill();
+      ctx.stroke();
     }
-    ctx.strokeRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
   }
   ctx.setLineDash([]);
 }
 
 function drawGrid({ grid, ctx }: ContextState) {
+  ctx.lineWidth = 1;
   let iteration = 0;
   const maxLength = 2000;
   for (let i = -maxLength; i <= maxLength; i += grid.gridSquareSize) {
