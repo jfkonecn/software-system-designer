@@ -18,16 +18,18 @@ function App() {
       appRef.current?.removeEventListener("wheel", handleKeyDown);
     };
   }, []);
-  const [grid, setGrid] = useState<Grid>({
-    rectangles: [
-      {
-        x: 50,
-        y: 500,
-        width: 100,
-        height: 100,
-      },
-    ],
-    gridSquareSize: 25,
+  const [gridState, setGridState] = useState<{ grid: Grid }>({
+    grid: {
+      rectangles: [
+        {
+          x: 50,
+          y: 500,
+          width: 100,
+          height: 100,
+        },
+      ],
+      gridSquareSize: 25,
+    },
   });
 
   return (
@@ -41,8 +43,8 @@ function App() {
         />
         <Canvas
           snapToGrid={snapToGrid}
-          grid={grid}
-          onGridChange={setGrid}
+          grid={gridState.grid}
+          onGridChange={(x) => setGridState({ grid: x })}
           drawMode={drawMode}
         />
       </div>

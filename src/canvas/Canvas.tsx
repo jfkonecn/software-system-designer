@@ -47,19 +47,13 @@ export default function Canvas({
     if (drawMode === "addRectangle") {
       const canvas = canvasRef.current;
       if (canvas) {
-        const newGrid = {
-          ...grid,
-          rectangles: [
-            ...grid.rectangles,
-            {
-              x: cursor.x,
-              y: cursor.y,
-              width: 100,
-              height: 100,
-            },
-          ],
-        };
-        onGridChange(newGrid);
+        grid.rectangles.push({
+          x: cursor.x,
+          y: cursor.y,
+          width: 100,
+          height: 100,
+        });
+        onGridChange(grid);
       }
     }
   }, [drawMode, onGridChange, grid, cursor]);
