@@ -44,7 +44,7 @@ export default function Canvas({
   const onCanvasClick = useCallback<
     MouseEventHandler<HTMLCanvasElement>
   >(() => {
-    if (drawMode === "addRectangle") {
+    if (drawMode.typename === "addRectangle") {
       const canvas = canvasRef.current;
       if (canvas) {
         grid.rectangles.push({

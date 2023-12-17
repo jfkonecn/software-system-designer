@@ -10,4 +10,7 @@ export type Grid = {
   gridSquareSize: number;
 };
 
-export type DrawMode = "select" | "addRectangle" | "erase";
+export type DrawMode =
+  | { typename: "select" }
+  | { typename: "addRectangle" }
+  | { typename: "lasso"; start: { x: number; y: number } };

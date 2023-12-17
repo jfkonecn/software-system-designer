@@ -5,7 +5,7 @@ import { DrawMode, Grid } from "./types";
 
 function App() {
   const appRef = useRef<HTMLDivElement>(null);
-  const [drawMode, setDrawMode] = useState<DrawMode>("select");
+  const [drawMode, setDrawMode] = useState<DrawMode>({ typename: "select" });
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
 
   useEffect(() => {
