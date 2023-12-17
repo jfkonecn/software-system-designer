@@ -1,8 +1,15 @@
-import { MouseEventHandler, useCallback, useEffect, useRef } from "react";
+import {
+  MouseEventHandler,
+  KeyboardEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { DrawMode, Grid } from "../types";
 import {
   UseTranslatePositionRtn,
   useCursor,
+  useDocumentKeyDown,
   useResizeObserver,
   useScale,
   useTranslatePosition,
@@ -45,7 +52,6 @@ export default function Canvas({
 
   const onCanvasClick = useCallback<MouseEventHandler<HTMLCanvasElement>>(
     (e) => {
-      console.log("canvas click");
       e.preventDefault();
       if (drawMode.typename === "addRectangle") {
         const canvas = canvasRef.current;
@@ -55,31 +61,76 @@ export default function Canvas({
             y: cursor.y,
             width: 100,
             height: 100,
+            uuid: crypto.randomUUID(),
           });
           onGridChange(grid);
         }
-      } else if (e.button == 2 && drawMode.typename === "select") {
-        onDrawModeChange({
-          typename: "select",
-          phase: { typename: "idle" },
-        });
       } else if (drawMode.typename === "select") {
-        onDrawModeChange({
-          typename: "select",
-          phase: { typename: "lasso", start: cursor },
-        });
+        if (
+          drawMode.phase.typename === "idle" ||
+          drawMode.phase.typename === "selected"
+        ) {
+          onDrawModeChange({
+            typename: "select",
+            phase: { typename: "lasso", start: cursor },
+          });
+        } else if (drawMode.phase.typename === "lasso") {
+          const selectedUuids: string[] = [];
+          for (const rectangle of grid.rectangles) {
+            const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
+            const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
+            const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
+            const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
+            const minXRectangle = rectangle.x;
+            const minYRectangle = rectangle.y;
+            const maxXRectangle = rectangle.x + rectangle.width;
+            const maxYRectangle = rectangle.y + rectangle.height;
+            if (
+              minXSelected < maxXRectangle &&
+              maxXSelected > minXRectangle &&
+              minYSelected < maxYRectangle &&
+              maxYSelected > minYRectangle
+            ) {
+              selectedUuids.push(rectangle.uuid);
+            }
+          }
+          onDrawModeChange({
+            typename: "select",
+            phase: { typename: "selected", uuids: selectedUuids },
+          });
+        }
       }
       return false;
     },
     [drawMode, onGridChange, grid, cursor, onDrawModeChange],
   );
 
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && drawMode.typename === "select") {
+        onDrawModeChange({
+          typename: "select",
+          phase: { typename: "idle" },
+        });
+      } else if (e.key === "Delete" && drawMode.typename === "select") {
+        const phase = drawMode.phase;
+        if (phase.typename === "selected") {
+          const newRectangles = grid.rectangles.filter(
+            (rectangle) => !phase.uuids.includes(rectangle.uuid),
+          );
+          onGridChange({ ...grid, rectangles: newRectangles });
+        }
+      }
+    },
+    [drawMode, onDrawModeChange, grid, onGridChange],
+  );
+  useDocumentKeyDown(onKeyDown);
+
   useResizeObserver(canvasRef, redraw);
   return (
     <canvas
       ref={canvasRef}
       onClick={onCanvasClick}
-      onMouseDown={onCanvasClick}
       className="bg-white w-full h-full"
       onContextMenu={(e) => e.preventDefault()}
     ></canvas>
@@ -168,11 +219,24 @@ function drawCursor({
   }
 }
 
-function drawRectangles({ grid, ctx }: ContextState) {
+function drawRectangles({ grid, ctx, drawMode }: ContextState) {
+  const selectedUuids =
+    drawMode.typename === "select" && drawMode.phase.typename === "selected"
+      ? drawMode.phase.uuids
+      : [];
   for (const rectangle of grid.rectangles) {
-    ctx.fillStyle = "red";
-    ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+    if (selectedUuids.includes(rectangle.uuid)) {
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = grid.gridSquareSize / 5;
+      ctx.setLineDash([grid.gridSquareSize / 5, grid.gridSquareSize / 5]);
+    } else {
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = grid.gridSquareSize / 10;
+      ctx.setLineDash([]);
+    }
+    ctx.strokeRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
   }
+  ctx.setLineDash([]);
 }
 
 function drawGrid({ grid, ctx }: ContextState) {

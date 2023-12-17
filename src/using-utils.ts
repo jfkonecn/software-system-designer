@@ -142,3 +142,13 @@ export function useCursor({
   }, [canvasRef, scale, translateX, translateY, snapToGrid, grid]);
   return cursor;
 }
+
+export function useDocumentKeyDown(onKeyDown: (e: KeyboardEvent) => void) {
+  useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onKeyDown]);
+}

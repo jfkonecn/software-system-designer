@@ -29,6 +29,7 @@ function App() {
           y: 500,
           width: 100,
           height: 100,
+          uuid: crypto.randomUUID(),
         },
       ],
       gridSquareSize: 25,
