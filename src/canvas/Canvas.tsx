@@ -50,74 +50,111 @@ export default function Canvas({
     redraw();
   }, [redraw]);
 
-  const onCanvasClick = useCallback<MouseEventHandler<HTMLCanvasElement>>(
+  const onMouseDown = useCallback<MouseEventHandler<HTMLCanvasElement>>(
     (e) => {
       e.preventDefault();
-      if (drawMode.typename === "addRectangle") {
-        if (drawMode.phase.typename === "idle") {
-          onDrawModeChange({
-            typename: "addRectangle",
-            phase: { typename: "adding", start: cursor },
-          });
-        } else if (drawMode.phase.typename === "adding") {
-          const canvas = canvasRef.current;
-          if (canvas) {
-            const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
-            const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
-            const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
-            const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
-            grid.rectangles.push({
-              x: minXSelected,
-              y: minYSelected,
-              width: maxXSelected - minXSelected,
-              height: maxYSelected - minYSelected,
-              uuid: crypto.randomUUID(),
-            });
-            onGridChange(grid);
+      if (e.button === 0) {
+        if (drawMode.typename === "addRectangle") {
+          if (drawMode.phase.typename === "idle") {
             onDrawModeChange({
               typename: "addRectangle",
-              phase: { typename: "idle" },
+              phase: { typename: "adding", start: cursor },
+            });
+          } else if (drawMode.phase.typename === "adding") {
+            const canvas = canvasRef.current;
+            if (canvas) {
+              const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
+              const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
+              const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
+              const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
+              grid.rectangles.push({
+                x: minXSelected,
+                y: minYSelected,
+                width: maxXSelected - minXSelected,
+                height: maxYSelected - minYSelected,
+                uuid: crypto.randomUUID(),
+              });
+              onGridChange(grid);
+              onDrawModeChange({
+                typename: "addRectangle",
+                phase: { typename: "idle" },
+              });
+            }
+          }
+        } else if (drawMode.typename === "select") {
+          if (
+            drawMode.phase.typename === "idle" ||
+            drawMode.phase.typename === "selected"
+          ) {
+            onDrawModeChange({
+              typename: "select",
+              phase: { typename: "lasso", start: cursor },
+            });
+          } else if (drawMode.phase.typename === "lasso") {
+            const selectedUuids: string[] = [];
+            for (const rectangle of grid.rectangles) {
+              const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
+              const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
+              const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
+              const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
+              const minXRectangle = rectangle.x;
+              const minYRectangle = rectangle.y;
+              const maxXRectangle = rectangle.x + rectangle.width;
+              const maxYRectangle = rectangle.y + rectangle.height;
+              if (
+                minXSelected < maxXRectangle &&
+                maxXSelected > minXRectangle &&
+                minYSelected < maxYRectangle &&
+                maxYSelected > minYRectangle
+              ) {
+                selectedUuids.push(rectangle.uuid);
+              }
+            }
+            onDrawModeChange({
+              typename: "select",
+              phase: { typename: "selected", uuids: selectedUuids },
             });
           }
         }
-      } else if (drawMode.typename === "select") {
-        if (
-          drawMode.phase.typename === "idle" ||
-          drawMode.phase.typename === "selected"
-        ) {
-          onDrawModeChange({
-            typename: "select",
-            phase: { typename: "lasso", start: cursor },
-          });
-        } else if (drawMode.phase.typename === "lasso") {
-          const selectedUuids: string[] = [];
-          for (const rectangle of grid.rectangles) {
-            const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
-            const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
-            const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
-            const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
-            const minXRectangle = rectangle.x;
-            const minYRectangle = rectangle.y;
-            const maxXRectangle = rectangle.x + rectangle.width;
-            const maxYRectangle = rectangle.y + rectangle.height;
-            if (
-              minXSelected < maxXRectangle &&
-              maxXSelected > minXRectangle &&
-              minYSelected < maxYRectangle &&
-              maxYSelected > minYRectangle
-            ) {
-              selectedUuids.push(rectangle.uuid);
-            }
-          }
-          onDrawModeChange({
-            typename: "select",
-            phase: { typename: "selected", uuids: selectedUuids },
-          });
-        }
+        return false;
       }
-      return false;
     },
     [drawMode, onGridChange, grid, cursor, onDrawModeChange],
+  );
+
+  const onMouseUp = useCallback<MouseEventHandler<HTMLCanvasElement>>(
+    (e) => {
+      if (
+        drawMode.typename === "select" &&
+        drawMode.phase.typename === "lasso" &&
+        e.button === 0
+      ) {
+        const selectedUuids: string[] = [];
+        for (const rectangle of grid.rectangles) {
+          const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
+          const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
+          const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
+          const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
+          const minXRectangle = rectangle.x;
+          const minYRectangle = rectangle.y;
+          const maxXRectangle = rectangle.x + rectangle.width;
+          const maxYRectangle = rectangle.y + rectangle.height;
+          if (
+            minXSelected < maxXRectangle &&
+            maxXSelected > minXRectangle &&
+            minYSelected < maxYRectangle &&
+            maxYSelected > minYRectangle
+          ) {
+            selectedUuids.push(rectangle.uuid);
+          }
+        }
+        onDrawModeChange({
+          typename: "select",
+          phase: { typename: "selected", uuids: selectedUuids },
+        });
+      }
+    },
+    [drawMode, grid, cursor, onDrawModeChange],
   );
 
   const onKeyDown = useCallback(
@@ -150,7 +187,8 @@ export default function Canvas({
   return (
     <canvas
       ref={canvasRef}
-      onClick={onCanvasClick}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
       className="bg-white w-full h-full"
       onContextMenu={(e) => e.preventDefault()}
     ></canvas>
@@ -270,6 +308,8 @@ function drawRectangles({ grid, ctx, drawMode }: ContextState) {
     } else {
       ctx.strokeStyle = "black";
       ctx.fillStyle = "white";
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
       ctx.strokeRect(
         rectangle.x,
         rectangle.y,
