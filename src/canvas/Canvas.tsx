@@ -33,7 +33,7 @@ export default function Canvas({
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      draw(canvas, grid, scale, translate, cursor);
+      draw({ canvas, grid, scale, translate, cursor });
     }
   }, [grid, scale, translate, cursor]);
 
@@ -68,13 +68,19 @@ export default function Canvas({
   );
 }
 
-function draw(
-  canvas: HTMLCanvasElement,
-  grid: Grid,
-  scale: number,
-  translate: UseTranslatePositionRtn,
-  cursor: { x: number; y: number },
-) {
+type CanvasState = {
+  canvas: HTMLCanvasElement;
+  grid: Grid;
+  scale: number;
+  translate: UseTranslatePositionRtn;
+  cursor: { x: number; y: number };
+};
+
+type ContextState = Omit<CanvasState, "canvas"> & {
+  ctx: CanvasRenderingContext2D;
+};
+
+function draw({ canvas, grid, scale, translate, cursor }: CanvasState) {
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio * scale;
   const cssWidth = Math.round(canvas.clientWidth / scale);
@@ -86,18 +92,20 @@ function draw(
   if (ctx) {
     ctx.translate(translate.translateX, translate.translateY);
     ctx.scale(dpr, dpr);
-    drawGrid(grid, ctx);
-    drawRectangles(grid, ctx);
-    drawCursor(ctx, grid, cursor, scale);
+    const contextState: ContextState = {
+      ctx,
+      grid,
+      scale,
+      translate,
+      cursor,
+    };
+    drawGrid(contextState);
+    drawRectangles(contextState);
+    drawCursor(contextState);
   }
 }
 
-function drawCursor(
-  ctx: CanvasRenderingContext2D,
-  grid: Grid,
-  { x, y }: { x: number; y: number },
-  scale: number,
-) {
+function drawCursor({ ctx, grid, cursor: { x, y }, scale }: ContextState) {
   ctx.strokeStyle = "blue";
   const fontSize = 1 / scale + 1;
   ctx.font = `${fontSize}rem Arial`;
@@ -117,14 +125,14 @@ function drawCursor(
   ctx.stroke();
 }
 
-function drawRectangles(grid: Grid, ctx: CanvasRenderingContext2D) {
+function drawRectangles({ grid, ctx }: ContextState) {
   for (const rectangle of grid.rectangles) {
     ctx.fillStyle = "red";
     ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
   }
 }
 
-function drawGrid(grid: Grid, ctx: CanvasRenderingContext2D) {
+function drawGrid({ grid, ctx }: ContextState) {
   let iteration = 0;
   const maxLength = 2000;
   for (let i = -maxLength; i <= maxLength; i += grid.gridSquareSize) {
