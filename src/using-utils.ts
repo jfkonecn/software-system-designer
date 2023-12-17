@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Grid } from "./types";
 
 export function useResizeObserver(
   ref: React.RefObject<HTMLElement>,
@@ -93,18 +94,29 @@ export function useTranslatePosition(
   return { translateX, translateY };
 }
 
-export function useCursor(
-  canvasRef: React.RefObject<HTMLCanvasElement>,
-  scale: number,
-  {
-    translateX,
-    translateY,
-  }: {
+export type UseCursorArgs = {
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+  scale: number;
+  translate: {
     translateX: number;
     translateY: number;
-  },
-): { x: number; y: number } {
-  const [cursor, setCursor] = useState({ x: 0, y: 0 });
+  };
+  snapToGrid: boolean;
+  grid: Grid;
+};
+export type UseCursorRtn = {
+  x: number;
+  y: number;
+};
+
+export function useCursor({
+  canvasRef,
+  scale,
+  translate: { translateX, translateY },
+  snapToGrid,
+  grid,
+}: UseCursorArgs): UseCursorRtn {
+  const [cursor, setCursor] = useState<UseCursorRtn>({ x: 0, y: 0 });
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       const { clientX, clientY } = e;
@@ -114,13 +126,19 @@ export function useCursor(
       };
       const x = (clientX - left - translateX) / scale;
       const y = (clientY - top - translateY) / scale;
-      setCursor({ x, y });
+      const newX = snapToGrid
+        ? Math.round(x / grid.gridSquareSize) * grid.gridSquareSize
+        : x;
+      const newY = snapToGrid
+        ? Math.round(y / grid.gridSquareSize) * grid.gridSquareSize
+        : y;
+      setCursor({ x: newX, y: newY });
     };
     canvasRef.current?.addEventListener("mousemove", onMouseMove);
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       canvasRef.current?.removeEventListener("mousemove", onMouseMove);
     };
-  }, [canvasRef, scale, translateX, translateY]);
+  }, [canvasRef, scale, translateX, translateY, snapToGrid, grid]);
   return cursor;
 }

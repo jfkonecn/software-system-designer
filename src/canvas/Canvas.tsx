@@ -29,48 +29,40 @@ export default function Canvas({
   const scale = useScale(canvasRef);
   const translate = useTranslatePosition(canvasRef);
 
-  const cursor = useCursor(canvasRef, scale, translate);
+  const cursor = useCursor({ canvasRef, scale, translate, grid, snapToGrid });
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      draw(canvas, grid, scale, translate, cursor, snapToGrid);
+      draw(canvas, grid, scale, translate, cursor);
     }
-  }, [grid, scale, translate, cursor, snapToGrid]);
+  }, [grid, scale, translate, cursor]);
 
   useEffect(() => {
     redraw();
   }, [redraw]);
 
-  const onCanvasClick = useCallback<MouseEventHandler<HTMLCanvasElement>>(
-    (e) => {
-      if (drawMode === "addRectangle") {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const { x, y } = effectiveXY(e, canvas, translate, scale);
-          grid.rectangles.push({
-            x: x,
-            y: y,
-            width: 100,
-            height: 100,
-          });
-          const newGrid = {
-            ...grid,
-            rectangles: [
-              ...grid.rectangles,
-              {
-                x: x,
-                y: y,
-                width: 100,
-                height: 100,
-              },
-            ],
-          };
-          onGridChange(newGrid);
-        }
+  const onCanvasClick = useCallback<
+    MouseEventHandler<HTMLCanvasElement>
+  >(() => {
+    if (drawMode === "addRectangle") {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const newGrid = {
+          ...grid,
+          rectangles: [
+            ...grid.rectangles,
+            {
+              x: cursor.x,
+              y: cursor.y,
+              width: 100,
+              height: 100,
+            },
+          ],
+        };
+        onGridChange(newGrid);
       }
-    },
-    [drawMode, onGridChange, grid, translate, scale],
-  );
+    }
+  }, [drawMode, onGridChange, grid, cursor]);
 
   useResizeObserver(canvasRef, redraw);
   return (
@@ -82,25 +74,12 @@ export default function Canvas({
   );
 }
 
-function effectiveXY(
-  e: React.MouseEvent<HTMLCanvasElement, MouseEvent>,
-  canvas: HTMLCanvasElement,
-  translate: UseTranslatePositionRtn,
-  scale: number,
-) {
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left - translate.translateX) / scale;
-  const y = (e.clientY - rect.top - translate.translateY) / scale;
-  return { x, y };
-}
-
 function draw(
   canvas: HTMLCanvasElement,
   grid: Grid,
   scale: number,
   translate: UseTranslatePositionRtn,
   cursor: { x: number; y: number },
-  snapToGrid: boolean,
 ) {
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio * scale;
@@ -115,27 +94,33 @@ function draw(
     ctx.scale(dpr, dpr);
     drawGrid(grid, ctx);
     drawRectangles(grid, ctx);
-    drawCursor(ctx, grid, cursor.x, cursor.y, snapToGrid);
+    drawCursor(ctx, grid, cursor, scale);
   }
 }
 
 function drawCursor(
   ctx: CanvasRenderingContext2D,
   grid: Grid,
-  x: number,
-  y: number,
-  snapToGrid: boolean,
+  { x, y }: { x: number; y: number },
+  scale: number,
 ) {
-  ctx.fillStyle = "blue";
-  ctx.font = "30px Arial";
-  const newX = snapToGrid
-    ? Math.round(x / grid.gridSquareSize) * grid.gridSquareSize
-    : x;
-  const newY = snapToGrid
-    ? Math.round(y / grid.gridSquareSize) * grid.gridSquareSize
-    : y;
-  ctx.fillText(`${newX}, ${newY}`, newX, newY);
-  ctx.fillRect(newX, newY, 100, 100);
+  ctx.strokeStyle = "blue";
+  const fontSize = 1 / scale + 1;
+  ctx.font = `${fontSize}rem Arial`;
+  ctx.lineWidth = grid.gridSquareSize / 5;
+  const textOffset = grid.gridSquareSize / 2;
+  ctx.fillText(
+    `${x.toFixed(2)}, ${y.toFixed(2)}`,
+    x + textOffset,
+    y - textOffset,
+  );
+  const crossHairSize = grid.gridSquareSize * 5;
+  ctx.beginPath();
+  ctx.moveTo(x - crossHairSize, y);
+  ctx.lineTo(x + crossHairSize, y);
+  ctx.moveTo(x, y - crossHairSize);
+  ctx.lineTo(x, y + crossHairSize);
+  ctx.stroke();
 }
 
 function drawRectangles(grid: Grid, ctx: CanvasRenderingContext2D) {
