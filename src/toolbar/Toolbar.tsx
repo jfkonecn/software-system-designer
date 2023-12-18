@@ -31,16 +31,16 @@ export default function Toolbar({
           </button>
           <button
             className={`${
-              drawModeTypename === "addRectangle" ? "bg-blue-300" : "bg-white"
+              drawModeTypename === "addNode" ? "bg-blue-300" : "bg-white"
             }`}
             onClick={() =>
               onDrawModeChange({
-                typename: "addRectangle",
+                typename: "addNode",
                 phase: { typename: "idle" },
               })
             }
           >
-            Add Rectangle
+            Add Node
           </button>
         </section>
         <section className="w-full h-full flex flex-row md:flex-col">

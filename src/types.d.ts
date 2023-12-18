@@ -1,13 +1,12 @@
-export type Rectangle = {
+export type Node = {
   x: number;
   y: number;
-  width: number;
-  height: number;
+  radius: number;
   uuid: string;
 };
 
 export type Grid = {
-  rectangles: Rectangle[];
+  nodes: Node[];
   gridSquareSize: number;
 };
 
@@ -19,11 +18,11 @@ export type SelectMode = {
     | { typename: "selected"; uuids: string[] };
 };
 
-export type AddRectangleMode = {
-  typename: "addRectangle";
+export type AddNodeMode = {
+  typename: "addNode";
   phase:
     | { typename: "idle" }
     | { typename: "adding"; start: { x: number; y: number } };
 };
 
-export type DrawMode = SelectMode | AddRectangleMode;
+export type DrawMode = SelectMode | AddNodeMode;

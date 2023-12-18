@@ -23,12 +23,11 @@ function App() {
   }, []);
   const [gridState, setGridState] = useState<{ grid: Grid }>({
     grid: {
-      rectangles: [
+      nodes: [
         {
           x: 50,
           y: 500,
-          width: 100,
-          height: 100,
+          radius: 100,
           uuid: crypto.randomUUID(),
         },
       ],
