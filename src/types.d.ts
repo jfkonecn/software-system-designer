@@ -15,6 +15,11 @@ export type SelectMode = {
   phase:
     | { typename: "idle" }
     | { typename: "lasso"; start: { x: number; y: number } }
+    | {
+        typename: "movingNode";
+        start: { x: number; y: number };
+        uuids: string[];
+      }
     | { typename: "selected"; uuids: string[] };
 };
 

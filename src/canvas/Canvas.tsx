@@ -6,8 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { DrawMode, Grid } from "../types";
+import { DrawMode, Grid, Node, SelectMode } from "../types";
 import {
+  UseCursorRtn,
   UseTranslatePositionRtn,
   useCursor,
   useDocumentKeyDown,
@@ -83,8 +84,27 @@ export default function Canvas({
               });
             }
           }
-        } else if (drawMode.typename === "select") {
-          if (
+        } else if (
+          drawMode.typename === "select" &&
+          drawMode.phase.typename !== "movingNode"
+        ) {
+          const uuids: string[] = [];
+          for (const node of grid.nodes) {
+            const intersects = nodeIntersectsWithLasso(cursor, cursor, node);
+            if (intersects) {
+              uuids.push(node.uuid);
+            }
+          }
+          if (uuids.length > 0 && drawMode.phase.typename === "selected") {
+            onDrawModeChange({
+              typename: "select",
+              phase: {
+                typename: "movingNode",
+                start: cursor,
+                uuids: uuids,
+              },
+            });
+          } else if (
             drawMode.phase.typename === "idle" ||
             drawMode.phase.typename === "selected"
           ) {
@@ -104,33 +124,34 @@ export default function Canvas({
     (e) => {
       if (
         drawMode.typename === "select" &&
+        drawMode.phase.typename === "movingNode"
+      ) {
+        onDrawModeChange({
+          typename: "select",
+          phase: { typename: "idle" },
+        });
+      } else if (
+        drawMode.typename === "select" &&
         drawMode.phase.typename === "lasso" &&
         e.button === 0
       ) {
-        const selectedUuids: string[] = [];
+        let selectedUuids: string[] = [];
         for (const node of grid.nodes) {
-          const minXSelected = Math.min(cursor.x, drawMode.phase.start.x);
-          const minYSelected = Math.min(cursor.y, drawMode.phase.start.y);
-          const maxXSelected = Math.max(cursor.x, drawMode.phase.start.x);
-          const maxYSelected = Math.max(cursor.y, drawMode.phase.start.y);
-          const closestX = Math.max(
-            minXSelected,
-            Math.min(node.x, maxXSelected),
-          );
-          const closestY = Math.max(
-            minYSelected,
-            Math.min(node.y, maxYSelected),
+          const intersects = nodeIntersectsWithLasso(
+            cursor,
+            drawMode.phase.start,
+            node,
           );
 
-          const distanceX = node.x - closestX;
-          const distanceY = node.y - closestY;
-
-          const distanceSquared = distanceX * distanceX + distanceY * distanceY;
-
-          if (distanceSquared <= node.radius * node.radius) {
+          if (intersects) {
             selectedUuids.push(node.uuid);
           }
         }
+        selectedUuids = mouseMoved
+          ? selectedUuids
+          : selectedUuids.length > 0
+            ? [selectedUuids[selectedUuids.length - 1]]
+            : [];
         onDrawModeChange({
           typename: "select",
           phase: { typename: "selected", uuids: selectedUuids },
@@ -138,7 +159,7 @@ export default function Canvas({
       }
       setMouseMoved(false);
     },
-    [drawMode, grid, cursor, onDrawModeChange],
+    [drawMode, grid, cursor, onDrawModeChange, mouseMoved],
   );
 
   const onKeyDown = useCallback(
@@ -192,6 +213,26 @@ type CanvasState = {
 type ContextState = Omit<CanvasState, "canvas"> & {
   ctx: CanvasRenderingContext2D;
 };
+
+function nodeIntersectsWithLasso(
+  cursor: UseCursorRtn,
+  lassoStart: { x: number; y: number },
+  node: Node,
+) {
+  const minXSelected = Math.min(cursor.x, lassoStart.x);
+  const minYSelected = Math.min(cursor.y, lassoStart.y);
+  const maxXSelected = Math.max(cursor.x, lassoStart.x);
+  const maxYSelected = Math.max(cursor.y, lassoStart.y);
+  const closestX = Math.max(minXSelected, Math.min(node.x, maxXSelected));
+  const closestY = Math.max(minYSelected, Math.min(node.y, maxYSelected));
+
+  const distanceX = node.x - closestX;
+  const distanceY = node.y - closestY;
+
+  const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+  const intersects = distanceSquared <= node.radius * node.radius;
+  return intersects;
+}
 
 function draw({
   canvas,
@@ -284,7 +325,10 @@ function drawNodes({ grid, ctx, drawMode }: ContextState) {
   const selectedUuids =
     drawMode.typename === "select" && drawMode.phase.typename === "selected"
       ? drawMode.phase.uuids
-      : [];
+      : drawMode.typename === "select" &&
+          drawMode.phase.typename === "movingNode"
+        ? drawMode.phase.uuids
+        : [];
   for (const node of grid.nodes) {
     if (selectedUuids.includes(node.uuid)) {
       ctx.strokeStyle = "red";
@@ -298,7 +342,6 @@ function drawNodes({ grid, ctx, drawMode }: ContextState) {
       ctx.fillStyle = "white";
       ctx.setLineDash([]);
       ctx.lineWidth = 1;
-      // stroke circle and fill
       ctx.beginPath();
       ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
       ctx.fill();
