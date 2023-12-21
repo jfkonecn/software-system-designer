@@ -7,7 +7,14 @@ export type Node = {
 
 export type Grid = {
   nodes: Node[];
+  edges: Edge[];
   gridSquareSize: number;
+};
+
+export type Edge = {
+  uuid: string;
+  startUuid: string;
+  endUuid: string;
 };
 
 export type SelectMode = {
@@ -30,4 +37,9 @@ export type AddNodeMode = {
     | { typename: "adding"; start: { x: number; y: number } };
 };
 
-export type DrawMode = SelectMode | AddNodeMode;
+export type AddEdgeMode = {
+  typename: "addEdge";
+  phase: { typename: "idle" } | { typename: "adding"; startUuid: string };
+};
+
+export type DrawMode = SelectMode | AddNodeMode | AddEdgeMode;

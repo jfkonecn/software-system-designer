@@ -32,6 +32,7 @@ function App() {
         },
       ],
       gridSquareSize: 25,
+      edges: [],
     },
   });
 

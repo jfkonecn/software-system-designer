@@ -42,6 +42,19 @@ export default function Toolbar({
           >
             Add Node
           </button>
+          <button
+            className={`${
+              drawModeTypename === "addEdge" ? "bg-blue-300" : "bg-white"
+            }`}
+            onClick={() =>
+              onDrawModeChange({
+                typename: "addEdge",
+                phase: { typename: "idle" },
+              })
+            }
+          >
+            Add Edge
+          </button>
         </section>
         <section className="w-full h-full flex flex-row md:flex-col">
           <button
