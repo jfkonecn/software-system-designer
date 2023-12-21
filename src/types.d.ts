@@ -18,7 +18,7 @@ export type SelectMode = {
     | {
         typename: "movingNode";
         start: { x: number; y: number };
-        uuids: string[];
+        startNodes: Node[];
       }
     | { typename: "selected"; uuids: string[] };
 };

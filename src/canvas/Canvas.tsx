@@ -1,12 +1,11 @@
 import {
   MouseEventHandler,
-  KeyboardEventHandler,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { DrawMode, Grid, Node, SelectMode } from "../types";
+import { DrawMode, Grid, Node } from "../types";
 import {
   UseCursorRtn,
   UseTranslatePositionRtn,
@@ -88,20 +87,25 @@ export default function Canvas({
           drawMode.typename === "select" &&
           drawMode.phase.typename !== "movingNode"
         ) {
-          const uuids: string[] = [];
+          let hasSelected = false;
           for (const node of grid.nodes) {
             const intersects = nodeIntersectsWithLasso(cursor, cursor, node);
             if (intersects) {
-              uuids.push(node.uuid);
+              hasSelected = true;
+              break;
             }
           }
-          if (uuids.length > 0 && drawMode.phase.typename === "selected") {
+          const phase = drawMode.phase;
+          if (hasSelected && phase.typename === "selected") {
+            const startNodes = grid.nodes
+              .filter((x) => phase.uuids.includes(x.uuid))
+              .map((x) => ({ ...x }));
             onDrawModeChange({
               typename: "select",
               phase: {
                 typename: "movingNode",
                 start: cursor,
-                uuids: uuids,
+                startNodes,
               },
             });
           } else if (
@@ -128,7 +132,10 @@ export default function Canvas({
       ) {
         onDrawModeChange({
           typename: "select",
-          phase: { typename: "idle" },
+          phase: {
+            typename: "selected",
+            uuids: drawMode.phase.startNodes.map((x) => x.uuid),
+          },
         });
       } else if (
         drawMode.typename === "select" &&
@@ -187,6 +194,24 @@ export default function Canvas({
     [drawMode, onDrawModeChange, grid, onGridChange],
   );
   useDocumentKeyDown(onKeyDown);
+  const onMouseMove = useCallback(() => {
+    if (drawMode.typename === "select") {
+      const phase = drawMode.phase;
+      if (phase.typename === "movingNode") {
+        const deltaX = cursor.x - phase.start.x;
+        const deltaY = cursor.y - phase.start.y;
+        for (const startingNode of phase.startNodes) {
+          const curNode = grid.nodes.find((x) => x.uuid === startingNode.uuid);
+          if (curNode) {
+            curNode.x = startingNode.x + deltaX;
+            curNode.y = startingNode.y + deltaY;
+          }
+        }
+        onGridChange(grid);
+      }
+    }
+    setMouseMoved(true);
+  }, [setMouseMoved, onGridChange, grid, cursor, drawMode]);
 
   useResizeObserver(canvasRef, redraw);
   return (
@@ -194,7 +219,7 @@ export default function Canvas({
       ref={canvasRef}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
-      onMouseMove={() => setMouseMoved(true)}
+      onMouseMove={onMouseMove}
       className="bg-white w-full h-full"
       onContextMenu={(e) => e.preventDefault()}
     ></canvas>
@@ -327,7 +352,7 @@ function drawNodes({ grid, ctx, drawMode }: ContextState) {
       ? drawMode.phase.uuids
       : drawMode.typename === "select" &&
           drawMode.phase.typename === "movingNode"
-        ? drawMode.phase.uuids
+        ? drawMode.phase.startNodes.map((x) => x.uuid)
         : [];
   for (const node of grid.nodes) {
     if (selectedUuids.includes(node.uuid)) {
